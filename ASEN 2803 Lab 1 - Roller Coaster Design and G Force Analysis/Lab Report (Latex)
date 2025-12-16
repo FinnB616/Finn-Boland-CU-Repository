@@ -1,0 +1,264 @@
+\documentclass[journal ]{new-aiaa}
+%\documentclass[conf]{new-aiaa} for conference papers
+\usepackage[utf8]{inputenc}
+\usepackage{textcomp}
+
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage[version=4]{mhchem}
+\usepackage{siunitx}
+\usepackage{longtable,tabularx}
+\usepackage{float}
+\setlength\LTleft{0pt} 
+
+\title{Pilot Simulator, Lab 1 Group 2-10}
+
+\author{Tian Klomp Znidarsic, Rowan LeBlanc, Landon Holligan, Finn Boland}
+
+\begin{document}
+
+\maketitle
+
+\section{Nomenclature}
+{\renewcommand\arraystretch{1.0}
+\noindent\begin{longtable*}{@{}l @{\quad=\quad} l@{}}
+    $h$ & height of cart \\
+    $h_0$ & initial height of cart (125m) \\
+    $t$ & time \\
+    $v$ & velocity of cart \\
+    $y$ & y position of cart \\
+    $g$ & gravity \\
+    $a$ & acceleration of cart \\
+    $a_x$ & x acceleration \\
+    $a_y$ & y acceleration \\
+    $s$ & track length \\
+    $r$ & radius of loop \\
+    $\theta$ & angle of track relative to cart's weight force \\
+    $G$ & G-forces \\
+    $F_y$ & net forces in y direction \\
+    $F_x$ & net forces in x direction \\
+    $N$ & normal force of cart \\
+    $m$ & mass of cart \\
+    $\mu_k$ & friction coefficient of cart \\
+\end{longtable*}}
+
+\section{Abstract}
+In this project, our goal was to simplify a pilot flight simulator by building and operating a rollercoaster. In order to do this, we used different aspects of flight, including loop, banked turn, and parabola, as well as simulated weightlessness. This low-cost roller coaster simulator will later be programmed in virtual reality to achieve basic flight maneuvers.
+
+\section{Derivations}
+\subsection{Parabola}
+The motion along the parabola follows these equations:
+
+\begin{align}
+    G &= \frac{N}{mg}, \quad N = 0 \Rightarrow G = 0
+\end{align}
+
+Initial velocity components:
+\begin{align}
+    V_{0x} &= V_0 \cos \theta, \quad V_{0y} = V_0 \sin \theta
+\end{align}
+
+Acceleration components:
+\begin{align}
+    a_x &= 0, \quad a_y = -g
+\end{align}
+
+Solving for horizontal position:
+\begin{align}
+    V_x &= \frac{dx}{dt} = V_0 \cos \theta \Rightarrow x = V_0 \cos \theta \cdot t
+\end{align}
+
+Solving for vertical position:
+\begin{align}
+    V_y &= V_0 \sin \theta - gt \Rightarrow y = V_0 \sin \theta \cdot t - \frac{1}{2} g t^2
+\end{align}
+
+Expressing curvature:
+\begin{align}
+    \rho &= \left( \frac{1 + \left(\frac{dy}{dx}\right)^2}{\frac{d^2 y}{dx^2}} \right)
+\end{align}
+
+Normal force equation:
+\begin{align}
+    \sum F_t &= N - mg \sin \theta = m \frac{V^2}{\rho}
+\end{align}
+
+Solving for $N$:
+\begin{align}
+    N &= m \frac{V^2}{\rho} + mg \sin \theta
+\end{align}
+
+G-force equation:
+\begin{align}
+    G &= \frac{V^2}{\rho g} + \sin \theta
+\end{align}
+
+\subsection{Loop}
+Given that:
+\begin{equation}
+    s = r\theta \Rightarrow \theta = \frac{s}{r}
+\end{equation}
+
+Height function:
+\begin{equation}
+    h = h_0 + \int_{0}^{s} \sin\left(\frac{s}{r}\right) ds
+\end{equation}
+
+Solving the integral:
+\begin{equation}
+    h = h_0 + r - r\cos\left(\frac{s}{r}\right)
+\end{equation}
+
+Total energy:
+\begin{equation}
+    G = \frac{2(h_0 - h)}{r} - \sin\left(\frac{s}{r}\right)
+\end{equation}
+
+At the bottom:
+\begin{equation}
+    v = \sqrt{2g(h_0 - h)}
+\end{equation}
+
+\subsection{Banked Turn}
+\textit{Banked Turn Analysis}:
+For banked curves with angle $\theta = 60^\circ$:
+\begin{equation}
+    r = \frac{v^2}{g\cos\theta}
+\end{equation}
+G-force equation:
+\begin{equation}
+    G = \frac{1}{\cos\theta}
+\end{equation}
+Since \begin{math}\theta = 60 \end{math} and \begin{math}\cos{60} = 2 \end{math}, the upward G-forces is 2, while the lateral G-forces are 0.
+
+\subsection{Braking Section}
+\textit{Equations of Motion}:
+The forces acting on the system in the vertical and horizontal directions are given by:
+
+\begin{align}
+    \sum F_y &= N - mg = 0 \\
+    \rightarrow N &= mg \\
+    \sum F_x &= -\mu_k N = ma
+\end{align}
+
+Substituting $N = mg$:
+
+\begin{align}
+    a &= \frac{F_x}{m} = \frac{-\mu_k mg}{m} \\
+    &= -\mu_k g
+\end{align}
+
+Thus, the braking acceleration is:
+
+\begin{equation}
+    a = -\mu_k g
+\end{equation}
+
+\textit{Braking ``G''}:
+The deceleration in terms of gravitational acceleration is:
+
+\begin{equation}
+    G = \frac{a}{g} = \mu_k
+\end{equation}
+
+\textit{Conclusion}: The braking ``G'' is proportional to the coefficient of kinetic friction $\mu_k$.
+
+\textit{Centripetal Acceleration}:
+From circular motion:
+
+\begin{equation}
+    \frac{v^2}{r} = G
+\end{equation}
+
+This concludes that the G-forces experienced during the braking section of the track are proportional to \begin{math} \mu_k \end{math}.
+
+\section{Element Performance Analysis}
+\subsection{Parabola}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.5\linewidth]{Parabola_Gs.jpg}
+    \caption{G-forces Experienced in the Parabola}
+    \label{fig:G_parabola}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.5\linewidth]{Parabola_FBD.png}
+    \caption{Parabola FBD}
+    \label{fig:FBD_parabola}
+\end{figure}
+
+\subsection{Loop}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.5\linewidth]{Loop_Gs.jpg}
+    \caption{G-forces Experienced in the Loop}
+    \label{fig:G_loop}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.5\linewidth]{Loop_FBD.png}
+    \caption{Loop FBD}
+    \label{fig:FBD_loop}
+\end{figure}
+
+\subsection{Banked Turn}
+% G plot of banked turn
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.5\linewidth]{Banked_Turn_FBD.png}
+    \caption{Banked Turn FBD}
+    \label{fig:FBD_bank_turn}
+\end{figure}
+
+\subsection{Braking Section}
+% G plot of braking section
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.5\linewidth]{Braking_FBD.png}
+    \caption{Braking Section FBD}
+    \label{fig:FBD_braking}
+\end{figure}
+
+\section{Full Track Performance}
+After analyzing the contribution of G-forces from the loop section, the maximum G-forces appear to be greatest each time the coaster passes the bottom of the loop. Due to this, it is imperative that the loop appear higher up on the track, as the G-force is dependent on speed and velocity, but due to the restrictions on track length, having a higher speed would sacrifice too much track. Therefore, placing the bottom of the loop at 100 and having a radius of 11, the G force remains under the restriction of 6, yet still has enough speed to travel around the loop.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\textwidth]{Full_Coaster_Gs.jpg}
+    \caption{Total G-forces Experienced}
+    \label{fig:G-forces_rollercoaster}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.5\textwidth]{3D_RollerCoaster.jpg}
+    \caption{Rollercoaster Track with Speed Gradient}
+    \label{fig:3d_rollercoaster}
+\end{figure}
+
+\section{Conclusions + Recommendations}
+
+\section{Member Contributions}
+
+\begin{table}[h]
+    \centering
+    \begin{tabular}{|c|c|}
+        \hline
+        \textbf{Member} & \textbf{Contributions} \\
+        \hline
+        Tian Klomp Znidarsic & Banked Turn, Loop, Braking Sections, Matlab Code \\
+        \hline
+        Rowan LeBlanc & Banked Turn, Loop Sections, Lab Report, Matlab Code \\
+        \hline
+        Landon Holligan & Banked Turn, Parabola Sections, Matlab Code \\
+        \hline
+        Finn Boland & Braking Section, Lab Report \\
+        \hline
+    \end{tabular}
+\end{table}
+
+\section{Acknowledgments}
+As a group, we want to thank Professor Melvin Rafi, and the teaching staff for the resources and guidance required to complete this project.
+\end{document}

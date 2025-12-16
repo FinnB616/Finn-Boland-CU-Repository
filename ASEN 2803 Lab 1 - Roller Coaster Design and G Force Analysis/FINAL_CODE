@@ -1,0 +1,255 @@
+% Main script to integrate all sections and plot G-forces
+clear; clc; close all;
+
+% Initialize variables
+g = 9.81;
+z_max = 125;
+
+s_total = []; % Initialize total path length
+G_up = []; G_lat = []; G_fwd = [];
+v_tot = [];
+accuracy = 100;
+
+%% 1. Initial Semicircle Drop (XZ Plane)
+theta_semi_1 = linspace(0, pi/2, accuracy);
+r_semi_1 = 25;
+z_semi_1 = z_max - r_semi_1 * sin(theta_semi_1);
+s_semi_1 = linspace(0,pi*r_semi_1/2,accuracy);
+v_semi_1 = sqrt(2*g*(z_max - z_semi_1));
+
+G_up_semi_1 = ((2*(z_max - (z_max - r_semi_1 + r_semi_1*cos(s_semi_1./r_semi_1))) ./ r_semi_1) - sin(s_semi_1./r_semi_1 + pi));
+G_lat_semi_1 = zeros(size(s_semi_1));
+G_fwd_semi_1 = ones(size(s_semi_1));
+
+% Combine data
+v_tot = [v_tot, v_semi_1(:)'];
+s_total = [s_total, s_semi_1(:)'];
+G_up = [G_up, G_up_semi_1(:)'];
+G_lat = [G_lat, G_lat_semi_1(:)'];
+G_fwd = [G_fwd, G_fwd_semi_1(:)'];
+
+%% 2. Loop Section
+h_loop_bottom = 100;
+r_loop = 11;
+theta_loop = linspace (3 * pi / 2, 7 * pi / 2, accuracy);
+z_loop = z_semi_1(end) + r_loop + r_loop * sin(theta_loop);
+s_loop = linspace(0, 2*pi*r_loop, accuracy);
+v_loop = sqrt(2*g*(z_max - z_loop));
+
+G_up_loop = ((2*(z_max - (h_loop_bottom + r_loop - r_loop*cos(s_loop./r_loop))) ./ r_loop) - sin(s_loop./r_loop + 3*pi/2));
+G_lat_loop = zeros(size(s_loop));
+G_fwd_loop = ones(size(s_loop));
+
+% Combine Data
+v_tot = [v_tot, v_loop(:)'];
+s_total = [s_total, s_total(end) + s_loop(:)'];
+G_up = [G_up, G_up_loop(:)'];
+G_lat = [G_lat, G_lat_loop(:)'];
+G_fwd = [G_fwd, G_fwd_loop(:)'];
+
+%% 3. Transition to Parabola Straight
+length = 25;
+s_straight_1 = linspace(0,length,accuracy);
+z_straight_1 = linspace (z_loop(end), z_loop(end), accuracy);
+v_straight_1 = sqrt(2 * g * (z_max - z_straight_1));
+
+G_up_straight_1 = ones(size(s_straight_1));
+G_lat_straight_1 = zeros(size(s_straight_1));
+G_fwd_straight_1 = ones(size(s_straight_1));
+
+% Combine Data
+v_tot = [v_tot, v_straight_1(:)'];
+s_total = [s_total, s_total(end) + s_straight_1(:)'];
+G_up = [G_up, G_up_straight_1(:)'];
+G_lat = [G_lat, G_lat_straight_1(:)'];
+G_fwd = [G_fwd, G_fwd_straight_1(:)'];
+
+%% 4. Tranistion to Parabola semi 2
+r_semi_2 = 20/(2 - sqrt(2));
+theta_semi_2 = linspace (3 * pi / 2 , 7 * pi / 4, accuracy);
+s_semi_2 = linspace(0, pi*r_semi_2 / 4, accuracy);
+z_semi_2 = z_loop(end) + r_semi_2 * (1 + sin(theta_semi_2));
+v_semi_2 = sqrt(2 * g * (z_max - z_semi_2));
+
+G_up_semi_2 = ((2*(z_max - (h_loop_bottom + r_semi_2 - r_semi_2*cos(s_semi_2./r_semi_2))) ./ r_semi_2) - sin(s_semi_2./r_semi_2 + 3*pi/2));
+G_lat_loop = zeros(size(s_semi_2));
+G_fwd_loop = ones(size(s_semi_2));
+
+% Combine data
+v_tot = [v_tot, v_semi_2(:)'];
+s_total = [s_total, s_total(end) + s_semi_2(:)'];
+G_up = [G_up, G_up_semi_2(:)'];
+G_lat = [G_lat, G_lat_loop(:)'];
+G_fwd = [G_fwd, G_fwd_loop(:)'];
+
+%% 5. Zero-G Parabola
+h_0_parab = z_semi_2(end);
+theta_0 = 45;
+v0_parab = v_semi_2(end);
+
+z = @(x) (tand(theta_0) * x) - (g * (x.^2)) / (2 * v0_parab^2 * cosd(theta_0)^2) + h_0_parab;
+dz_dx = @(x) (tand(theta_0) - ((g / (v0_parab^2 * cosd(theta_0)^2)) * x));
+dz2_d2x = @(x) (-g / (v0_parab^2 * cosd(theta_0)^2)) * ones(size(x)); % Ensure output is same size as input
+
+rho = @(x) ((1 + (dz_dx(x).^2)).^(3/2)) ./ abs(dz2_d2x(x));
+
+s_parab(1) = 0;
+z_calc(1) = h_0_parab;
+x_parab(1) = 0;
+dx = .1;
+v_parab(1) = sqrt(2*g*(z_max-h_0_parab));
+G_up_Parab(1) = 0;
+
+z_ground = @(x) (tand(theta_0) * x) - (g * (x.^2)) / (2 * v0_parab^2 * cosd(theta_0)^2);
+
+z_root = fzero(z_ground,[20 1000]);
+
+for i = 2:((z_root/dx)+1)
+
+    x_parab(i) = x_parab(i-1) + dx;
+    theta(i) = asin(x_parab(i) / rho(x_parab(i))) ;
+    z_calc(i)= z(x_parab(i));
+    dz = z_calc(i) - z_calc(i-1);
+    ds(i) = sqrt(dx^2 + (dz)^2);
+    s_parab(i) = s_parab(i-1) + ds(i);
+
+    v_parab(i) = sqrt(2*g*(z_max-z_calc(i)));
+
+    G_up_Parab(i) = 0;
+
+end
+
+G_up_parab = zeros(size(s_parab));
+G_lat_parab = zeros(size(s_parab));
+G_fwd_parab = ones(size(s_parab));
+
+% Combine data
+v_tot = [v_tot, v_parab(:)'];
+s_total = [s_total, s_total(end) + s_parab(:)'];
+G_up = [G_up, G_up_parab(:)'];
+G_lat = [G_lat, G_lat_parab(:)'];
+G_fwd = [G_fwd, G_fwd_parab(:)'];
+
+%% 6. Transition to Bank linear
+h_0_lin = h_0_parab;
+theta_lin = theta_0;
+s_lin = linspace(0, (h_0_lin - 20) / cosd(theta_lin), accuracy);
+z_lin = h_0_lin - s_lin * cosd(theta_lin);
+    z_lin(end) = floor(z_lin(end)); 
+v_lin = sqrt(2 * g * (z_max - z_lin));
+
+G_up_lin = linspace(cosd(theta_lin), cosd(theta_lin), accuracy);
+G_fwd_lin = ones(size(s_lin));
+G_lat_lin = zeros(size(s_lin));
+
+% Combine data
+v_tot = [v_tot, v_lin(:)'];
+s_total = [s_total, s_total(end) + s_lin(:)'];
+G_up = [G_up, G_up_lin(:)'];
+G_lat = [G_lat, G_lat_lin(:)'];
+G_fwd = [G_fwd, G_fwd_lin(:)'];
+
+%% 7. Transition to Bank semi 3
+theta_loop_3 = linspace(5 * pi / 4, 3 * pi/2, accuracy);
+r_semi_3 = 2 * r_semi_2;
+s_semi_3 = linspace(0, pi*r_semi_3 / 4, accuracy);
+z_semi_3 = r_semi_3 * (1 + sin(theta_loop_3));
+    z_semi_3(end) = floor(z_semi_3(end));
+v_semi_3 = sqrt(2*g*(z_max - z_semi_3));
+
+G_up_semi_3 = ((2*(z_max - (z_lin(end) - r_semi_3 + r_semi_3*cos(s_semi_3./r_semi_3))) ./ r_semi_3) - sin(s_semi_3./r_semi_3 + (5*pi / 4)));
+G_lat_semi_3 = zeros(size(s_semi_3));
+G_fwd_semi_3 = ones(size(s_semi_3));
+
+% Combine data
+v_tot = [v_tot, v_semi_3(:)'];
+s_total = [s_total, s_total(end) + s_semi_3(:)'];
+G_up = [G_up, G_up_semi_3(:)'];
+G_lat = [G_lat, G_lat_semi_3(:)'];
+G_fwd = [G_fwd, G_fwd_semi_3(:)'];
+
+%% 8. Banked Turn (YZ Plane, use Banked.m)
+theta_turn = 60;
+v0_turn = sqrt(2*g*z_max);
+r_turn = (v0_turn^2 * cotd(theta_turn)) / g;
+s_turn = linspace(0, (pi*r_turn)/2, accuracy);
+v_turn = v0_turn * ones(size(s_turn));
+
+G_up_turn = (1/cosd(theta_turn)) * ones(size(s_turn));
+G_lat_turn = zeros(size(s_turn));
+G_fwd_turn = ones(size(s_turn));
+
+% Combine data
+v_tot = [v_tot, v_turn(:)'];
+s_total = [s_total, s_total(end) + s_turn(:)'];
+G_up = [G_up, G_up_turn(:)'];
+G_lat = [G_lat, G_lat_turn(:)'];
+G_fwd = [G_fwd, G_fwd_turn(:)'];
+
+%% 9. Braking Section
+length_brake = 100;
+s_brake = linspace(0, length_brake, accuracy);
+acceleration_brake = -(v_turn(end)^2 / (2*100));
+v_brake = linspace(v_turn(end), 0, accuracy);
+
+G_up_brake = ones(size(s_brake));
+G_lat_brake = zeros(size(s_brake));
+G_fwd_brake = (acceleration_brake / g) * ones(size(s_brake));
+
+% Combine data
+v_tot = [v_tot, v_brake(:)'];
+s_total = [s_total, s_total(end) + s_brake(:)'];
+G_up = [G_up, G_up_brake(:)'];
+G_lat = [G_lat, G_lat_brake(:)'];
+G_fwd = [G_fwd, G_fwd_brake(:)'];
+
+%% Warnings 
+total_track_length = s_total(end);
+
+if total_track_length > 1250
+    warning('Track length exceeds 1250 m');
+end
+if any(G_up > 6) || any(G_up < -1)
+    warning('Vertical G-forces exceed safe limits');
+end
+if any(G_fwd > 5) || any(G_fwd < -4)
+    warning('Forward/Backward G-forces exceed safe limits');
+end
+if any(G_lat > 3)
+    warning('Lateral G-forces exceed safe limits');
+end
+
+
+%% Plot G-forces
+figure;
+subplot(3,1,1);
+plot(s_total, G_up, 'b', 'LineWidth', 1.5);
+title('Vertical G-forces');
+xlabel('Path Length (m)');
+ylabel('G (Up/Down)');
+ylim([-2 6]);
+grid on;
+
+subplot(3,1,2);
+plot(s_total, G_lat, 'r', 'LineWidth', 1.5);
+title('Lateral G-forces');
+xlabel('Path Length (m)');
+ylabel('G (Lateral)');
+ylim([-2 6]);
+grid on;
+
+subplot(3,1,3);
+plot(s_total, G_fwd, 'g', 'LineWidth', 1.5);
+title('Forward/Backward G-forces');
+xlabel('Path Length (m)');
+ylabel('G (Forward/Backward)');
+ylim([-2 6]);
+grid on;
+
+figure;
+plot(s_total, v_tot, 'k', 'LineWidth', 1.5)
+title('Speed of Coaster');
+xlabel('Path Length (m)');
+ylabel('Speed (m/s)');
+ylim([0 50])
+grid on;
